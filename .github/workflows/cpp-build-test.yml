@@ -1,0 +1,144 @@
+name: C++ Build and Test
+
+on:
+  push:
+    branches: [ main, develop, DG11402-3-project0-planning ]
+    paths:
+      - 'src/**'
+      - '.github/workflows/**'
+      - 'CMakeLists.txt'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - '.github/workflows/**'
+
+jobs:
+  build-and-test:
+    name: Build and Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+            cpp_standard: 17
+          - os: windows-latest
+            compiler: msvc
+            cpp_standard: 17
+          - os: macos-latest
+            compiler: clang++
+            cpp_standard: 17
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up C++ compiler (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential g++
+
+    - name: Set up C++ compiler (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install llvm
+        export PATH="/usr/local/opt/llvm/bin:$PATH"
+
+    - name: Compile test suite
+      run: |
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          cl /EHsc /std:c++17 src\test_cases.cpp src\twosum.cpp /Fe:test_runner.exe
+        else
+          ${{ matrix.compiler }} -std=c++${{ matrix.cpp_standard }} -o test_runner src/test_cases.cpp src/twosum.cpp
+        fi
+      shell: bash
+
+    - name: Compile main application
+      run: |
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          cl /EHsc /std:c++17 src\main.cpp src\twosum.cpp /Fe:twosum.exe
+        else
+          ${{ matrix.compiler }} -std=c++${{ matrix.cpp_standard }} -o twosum src/main.cpp src/twosum.cpp
+        fi
+      shell: bash
+
+    - name: Run test suite
+      run: |
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          .\test_runner.exe
+        else
+          ./test_runner
+        fi
+      shell: bash
+
+    - name: Display test results
+      if: always()
+      run: |
+        echo "Build and test completed on ${{ matrix.os }}"
+        echo "Compiler: ${{ matrix.compiler }}"
+        echo "C++ Standard: C++${{ matrix.cpp_standard }}"
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck
+
+    - name: Run static analysis
+      run: |
+        cppcheck --enable=all --error-exitcode=1 src/ || true
+
+    - name: Check code style
+      run: |
+        # Check for trailing whitespace
+        if grep -r '[[:space:]]$' src/; then
+          echo "⚠ Warning: Trailing whitespace found"
+        fi
+        # Check for tab characters
+        if grep -r $'\t' src/; then
+          echo "⚠ Warning: Tab characters found (use spaces)"
+        fi
+
+  coverage:
+    name: Code Coverage Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential g++ gcov lcov
+
+    - name: Compile with coverage
+      run: |
+        g++ -std=c++17 -coverage -o test_runner src/test_cases.cpp src/twosum.cpp
+
+    - name: Run tests
+      run: |
+        ./test_runner
+
+    - name: Generate coverage report
+      run: |
+        lcov --directory . --capture --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' --output-file coverage.info
+        lcov --list coverage.info
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.info
+        fail_ci_if_error: false
