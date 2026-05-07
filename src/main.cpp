@@ -1,11 +1,30 @@
-//Main program to call the two sum function
+#include <iostream>
+#include <vector>
+#include "twosum.h"
+
+// Main program to call the two sum function
 int main() {
-    std::vector<int> nums = {2, 7, 11, 15};
-    int target = 9;
-    
+    int n;
+    std::cout << "Enter the size of the array: ";
+    std::cin >> n;
+
+    std::vector<int> nums(n);
+    std::cout << "Enter " << n << " integers: ";
+    for (int i = 0; i < n; ++i) {
+        std::cin >> nums[i];
+    }
+
+    int target;
+    std::cout << "Enter the target sum: ";
+    std::cin >> target;
+
     std::vector<int> result = twoSum(nums, target);
-    
-    std::cout << "Indices: [" << result[0] << ", " << result[1] << "]" << std::endl;
-    
+
+    if (result.empty()) {
+        std::cout << "No two sum solution found." << std::endl;
+    } else {
+        std::cout << "Indices: [" << result[0] << ", " << result[1] << "]" << std::endl;
+    }
+
     return 0;
 }

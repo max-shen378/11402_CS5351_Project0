@@ -1,0 +1,18 @@
+Test Case 1: Valid Solution Found
+
+Input:
+- Array size: 4
+- Array elements: [2, 7, 11, 15]
+- Target sum: 9
+
+Expected Output:
+- Indices: [0, 1]
+
+Actual Output:
+- Indices: [0, 1]
+
+Status: PASS ✓
+
+Explanation:
+Numbers at indices 0 and 1 are 2 and 7, which sum to 9 (2 + 7 = 9).
+
